@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get a Quote — Game Console Modding | Sweet Home, Oregon</title>
+<meta name="description" content="Request a quote for game console modding and homebrew services in Sweet Home, Oregon. Describe your console, add pictures, and get a quote by email.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --neon: #39ff14; }
+  body { font-family: "Press Start 2P", monospace; background: #000; color: var(--neon); line-height: 1.9; padding: 24px 16px 64px; text-shadow: 0 0 6px rgba(57,255,20,.8), 0 0 18px rgba(57,255,20,.45); }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .back { display: inline-block; margin-bottom: 20px; color: var(--neon); text-decoration: none; font-size: 11px; }
+  .back:hover { text-decoration: underline; }
+  .card { background: #0a0a0a; border: 2px solid var(--neon); border-radius: 4px; padding: 32px 28px; box-shadow: 0 0 24px rgba(57,255,20,.25), inset 0 0 24px rgba(57,255,20,.06); }
+  h1 { font-size: 20px; margin-bottom: 10px; }
+  .sub { font-size: 11px; margin-bottom: 24px; opacity: .85; }
+  label { display: block; margin: 20px 0 8px; font-size: 11px; }
+  .hint { opacity: .7; font-size: 9px; }
+  input[type=text], input[type=email], input[type=tel], textarea { width: 100%; padding: 12px 14px; border: 2px solid var(--neon); border-radius: 4px; font-family: "Press Start 2P", monospace; font-size: 11px; background: #000; color: var(--neon); text-shadow: 0 0 6px rgba(57,255,20,.8); }
+  input:focus, textarea:focus { outline: none; box-shadow: 0 0 16px rgba(57,255,20,.6); }
+  textarea { min-height: 140px; resize: vertical; line-height: 1.9; }
+  input[type=file] { font-family: "Press Start 2P", monospace; font-size: 10px; margin-top: 4px; }
+  input[type=file]::file-selector-button { font-family: "Press Start 2P", monospace; font-size: 10px; background: var(--neon); color: #000; border: none; padding: 10px 14px; border-radius: 4px; cursor: pointer; text-shadow: none; }
+  .file-note { font-size: 9px; opacity: .7; margin-top: 6px; }
+  button[type=submit] { display: block; width: 100%; margin-top: 28px; padding: 16px; font-family: "Press Start 2P", monospace; font-size: 13px; color: #000; background: var(--neon); border: none; border-radius: 4px; cursor: pointer; text-shadow: none; box-shadow: 0 0 20px rgba(57,255,20,.7); }
+  button[type=submit]:hover { box-shadow: 0 0 32px rgba(57,255,20,.95); }
+  button[type=submit]:disabled { opacity: .6; cursor: wait; }
+  .status { margin-top: 18px; padding: 14px 16px; border-radius: 4px; font-size: 10px; display: none; border: 2px solid var(--neon); }
+  .status.ok { display: block; }
+  .status.err { display: block; color: #ff5c5c; border-color: #ff5c5c; text-shadow: 0 0 8px rgba(255,92,92,.8); }
+  .alt { margin-top: 28px; padding-top: 22px; border-top: 2px solid var(--neon); text-align: center; font-size: 10px; }
+  .alt a { color: var(--neon); font-weight: bold; }
+  .hp { position: absolute; left: -9999px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../">← BACK TO CONSOLE MODDING</a>
+  <div class="card">
+    <h1>GET A QUOTE</h1>
+    <p class="sub">Tell me about your console. I'll email you back with a quote.</p>
+    <form id="quoteForm" novalidate>
+      <label for="name">YOUR NAME</label>
+      <input type="text" id="name" name="name" required autocomplete="name" placeholder="Jane Doe">
+
+      <label for="contact">PHONE OR EMAIL <span class="hint">— SO I CAN REACH YOU</span></label>
+      <input type="text" id="contact" name="contact" required autocomplete="tel" placeholder="(555) 123-4567 or you@email.com">
+
+      <label for="description">DESCRIBE YOUR CONSOLE / WHAT YOU WANT <span class="hint">— A FEW WORDS IS FINE</span></label>
+      <textarea id="description" name="description" required placeholder="Example: PS2 slim, want homebrew and emulators installed."></textarea>
+
+      <label for="photos">ADD PICTURES <span class="hint">(OPTIONAL)</span></label>
+      <input type="file" id="photos" name="photos" accept="image/*" multiple>
+      <div class="file-note">Photos of your console, its model label, or anything helpful. Up to about 10 MB total.</div>
+
+      <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off">
+
+      <button type="submit" id="submitBtn">GET A QUOTE</button>
+      <div class="status" id="status"></div>
+    </form>
+    <div class="alt">
+      PREFER TO TEXT INSTEAD?<br>REACH ME AT <a href="sms:+19713755534">971-375-5534</a>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  // Pre-fill the description from selections passed by the site's quote builder, if any.
+  var params = new URLSearchParams(window.location.search);
+  var desc = document.getElementById('description');
+  function labelize(k) {
+    return k.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+  }
+  var lines = [];
+  if (params.get('message')) {
+    desc.value = params.get('message');
+  } else {
+    params.forEach(function (v, k) {
+      if (v && v.trim() !== '') lines.push(labelize(k) + ': ' + v);
+    });
+    if (lines.length) desc.value = lines.join('\n');
+  }
+
+  var form = document.getElementById('quoteForm');
+  var btn = document.getElementById('submitBtn');
+  var status = document.getElementById('status');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    btn.disabled = true;
+    btn.textContent = 'SENDING…';
+    status.className = 'status';
+    status.textContent = '';
+
+    var data = new FormData(form);
+    data.append('_subject', 'New quote request — Console Modding');
+    data.append('_template', 'table');
+    data.append('_captcha', 'false');
+
+    fetch('https://formsubmit.co/ajax/davidrussell121@gmail.com', {
+      method: 'POST',
+      body: data,
+      headers: { 'Accept': 'application/json' }
+    })
+    .then(function (r) { return r.json(); })
+    .then(function () {
+      status.className = 'status ok';
+      status.textContent = 'TRANSMISSION RECEIVED. YOUR QUOTE REQUEST IS ON ITS WAY — I\'LL GET BACK TO YOU SOON.';
+      form.reset();
+      btn.disabled = false;
+      btn.textContent = 'GET A QUOTE';
+    })
+    .catch(function () {
+      status.className = 'status err';
+      status.textContent = 'SEND FAILED. PLEASE TEXT ME DIRECTLY AT 971-375-5534 INSTEAD.';
+      btn.disabled = false;
+      btn.textContent = 'GET A QUOTE';
+    });
+  });
+})();
+</script>
+</body>
+</html>
