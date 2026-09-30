@@ -370,8 +370,11 @@
             <div class="field">
               <label for="qty">Number of consoles</label>
               <select id="qty">
+                <option value="" disabled selected>Select…</option>
                 <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+                <option value="__other">Other — type your own…</option>
               </select>
+              <input type="text" id="qtyOther" placeholder="Type your own number" inputmode="numeric" style="display:none;margin-top:8px">
             </div>
             <div class="field">
               <label for="notes">What would you like it to do?</label>
@@ -478,10 +481,16 @@
   var copyBtn = document.getElementById("copyBtn");
   var copiedNote = document.getElementById("copiedNote");
   var quoteBtn = document.getElementById("quoteBtn");
+  var qtyOtherEl = document.getElementById("qtyOther");
+
+  function effectiveQty() {
+    var raw = qtySel.value === "__other" ? qtyOtherEl.value.trim() : qtySel.value;
+    return parseInt(raw, 10) || 1;
+  }
 
   function update() {
     var consoleName = consoleEl.value.trim();
-    var qty = parseInt(qtySel.value, 10) || 1;
+    var qty = effectiveQty();
     var notes = notesEl.value.trim();
 
     var lines = ["Hi David, I'm interested in console modding from your website!", "", "Console: " + (consoleName || "(see below)")];
@@ -492,13 +501,22 @@
     previewText.textContent = msg;
     copiedNote.textContent = "";
     /* Pass the visitor's selections through to the quote page so it can pre-fill them. */
-    quoteBtn.href = "quote/?console=" + encodeURIComponent(consoleName) +
-                    "&quantity=" + encodeURIComponent(String(qty)) +
-                    "&notes=" + encodeURIComponent(notes);
+    var qparams = new URLSearchParams();
+    if (consoleName) qparams.set("console", consoleName);
+    if (qty > 1) qparams.set("quantity", String(qty));
+    if (notes) qparams.set("notes", notes);
+    qparams.set("message", msg);
+    quoteBtn.href = "quote/?" + qparams.toString();
   }
 
   consoleEl.addEventListener("input", update);
-  qtySel.addEventListener("change", update);
+  qtySel.addEventListener("change", function () {
+    var isOther = qtySel.value === "__other";
+    qtyOtherEl.style.display = isOther ? "" : "none";
+    if (!isOther) qtyOtherEl.value = "";
+    update();
+  });
+  qtyOtherEl.addEventListener("input", update);
   notesEl.addEventListener("input", update);
 
   copyBtn.addEventListener("click", function () {
