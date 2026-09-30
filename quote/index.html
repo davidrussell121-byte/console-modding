@@ -45,16 +45,16 @@
     <p class="sub">Tell me about your console. I'll email you back with a quote.</p>
     <form id="quoteForm" novalidate>
       <label for="name">YOUR NAME</label>
-      <input type="text" id="name" name="name" required autocomplete="name" placeholder="Jane Doe">
+      <input type="text" id="name" name="fi-sender-fullName" required autocomplete="name" placeholder="Jane Doe">
 
       <label for="contact">PHONE OR EMAIL <span class="hint">— SO I CAN REACH YOU</span></label>
-      <input type="text" id="contact" name="contact" required autocomplete="tel" placeholder="(555) 123-4567 or you@email.com">
+      <input type="text" id="contact" name="fi-text-contact" required autocomplete="tel" placeholder="(555) 123-4567 or you@email.com">
 
       <label for="description">DESCRIBE YOUR CONSOLE / WHAT YOU WANT <span class="hint">— A FEW WORDS IS FINE</span></label>
-      <textarea id="description" name="description" required placeholder="Example: PS2 slim, want homebrew and emulators installed."></textarea>
+      <textarea id="description" name="fi-text-description" required placeholder="Example: PS2 slim, want homebrew and emulators installed."></textarea>
 
       <label for="photos">ADD PICTURES <span class="hint">(OPTIONAL)</span></label>
-      <input type="file" id="photos" name="photos" accept="image/*" multiple>
+      <input type="file" id="photos" name="fi-file-photos[]" accept="image/*" multiple>
       <div class="file-note">Photos of your console, its model label, or anything helpful. Up to about 10 MB total.</div>
 
       <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off">
@@ -98,11 +98,20 @@
     status.textContent = '';
 
     var data = new FormData(form);
-    data.append('_subject', 'New quote request — Console Modding');
-    data.append('_template', 'table');
-    data.append('_captcha', 'false');
+    // Spam honeypot: real visitors leave it empty. If it's filled, it's a
+    // bot — show a fake success and send nothing.
+    if (data.get('_honey')) {
+      status.className = 'status ok';
+      status.textContent = 'TRANSMISSION RECEIVED. YOUR QUOTE REQUEST IS ON ITS WAY — I\'LL GET BACK TO YOU SOON.';
+      form.reset();
+      btn.disabled = false;
+      btn.textContent = 'GET A QUOTE';
+      return;
+    }
+    data.delete('_honey');
+    data.append('fi-text-site', 'Console Modding');
 
-    // FormSubmit delivers at most 10 MB of attachments per submission.
+    // Keep photo uploads to 10 MB total per David's requirement (Forminit allows up to 25 MB).
     var photos = document.getElementById('photos');
     var totalSize = 0;
     for (var i = 0; i < photos.files.length; i++) totalSize += photos.files[i].size;
@@ -114,18 +123,17 @@
       return;
     }
 
-    fetch('https://formsubmit.co/ajax/davidrussell121@gmail.com', {
+    fetch('https://forminit.com/f/rfv6inf8b73', {
       method: 'POST',
       body: data,
       headers: { 'Accept': 'application/json' }
     })
-    // FormSubmit answers HTTP 200 even when the email was NOT delivered
-    // (e.g. the address has not been activated yet), with {"success":"false"}.
-    // Only treat an explicit success:"true" as delivered.
+    // Forminit answers {"success":true} when the submission is accepted.
+    // Anything else means it did NOT go through — never show a false success.
     .then(function (r) { return r.text().then(function (t) { return { ok: r.ok, text: t }; }); })
     .then(function (res) {
       var delivered = false;
-      try { delivered = res.ok && JSON.parse(res.text).success === 'true'; }
+      try { delivered = res.ok && JSON.parse(res.text).success === true; }
       catch (e) { delivered = false; }
       if (!delivered) throw new Error('not delivered');
       status.className = 'status ok';
